@@ -1,37 +1,55 @@
 #include <Arduino.h>
-#include <BalancinhoAux.h>
+#include <AtuadorAux.h>
+#include <SensorAux.h>
+#include <stdlib.h>
 
-namespace {
+static const int CENTRO_MM = 220;   // leitura do ToF com a bola no centro (confirmar)
 
-ServoSweep servo({D2, 0, 50, 14, 1493, 11, 15, 12});
-DistanceSensor sensor({220, 500, 4, 4, 60, 50000, 50});
+String linha;
 
+void processarComando(String comando) {
+  comando.trim();
+  if (comando.length() == 0) {
+    return;
+  }
+
+  char* fim;
+  const float angulo = strtof(comando.c_str(), &fim);
+  if (*fim == '\0' && isfinite(angulo)) {
+    servoWrite(angulo);
+  }
 }
 
 void setup() {
   Serial.begin(115200);
-  delay(1000);
+  servoBegin(D2, 0, 50, 14, 1500.0f, 10.0f, 25.0f);
 
-  servo.begin();
-
-  if (!sensor.begin()) {
-    Serial.println("Sensor nao encontrado!");
-    while (true) {
-      delay(100);
-    }
+  if (!distanceBegin(CENTRO_MM, 500, 16, 16, 199, 20000, 20)) {
+    Serial.println("erro_sensor:1");
   }
 }
 
 void loop() {
-  servo.update(millis());
+  // Angulo digitado no terminal
+  while (Serial.available()) {
+    char c = (char)Serial.read();
 
-  DistanceMeasurement measurement{};
-  if (sensor.update(measurement)) {
-    Serial.print("Distancia:");
-    Serial.print(measurement.distance);
-    Serial.print("\tPosicao:");
-    Serial.print(measurement.position);
-    Serial.print("\tPulso:");
-    Serial.println(servo.currentPulse());
+    if (c == '\n' || c == '\r') {
+      if (linha.length() > 0) {
+        processarComando(linha);
+        linha = "";
+      }
+    } else if (linha.length() < 24) {
+      linha += c;
+    }
   }
+
+  // Leitura do sensor de distancia
+    uint16_t distancia;
+    int posicao;
+    bool valido;
+    uint32_t timestampUs;
+    distancia, posicao, valido, timestampUs = distanceUpdate(distancia, posicao, valido, timestampUs);
+    Serial.println(posicao);
+
 }
