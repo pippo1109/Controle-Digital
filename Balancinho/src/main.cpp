@@ -4,34 +4,53 @@
 namespace {
 
 ServoSweep servo({D2, 0, 50, 14, 1493, 11, 15, 12});
-DistanceSensor sensor({220, 500, 4, 4, 60, 50000, 50});
+DistanceSensor sensor({230, 500, 4, 4, 60, 50000, 50});
 
+}
+
+float filterPosition(float input) {
+  constexpr size_t taps = 7;
+  constexpr float coefficient = 1.0f / taps;
+
+  static float history[taps] = {};
+  static bool initialized = false;
+
+  // Evita que o filtro comece com zeros e gere um pico inicial.
+  if (!initialized) {
+    for (size_t i = 0; i < taps; ++i) {
+      history[i] = input;
+    }
+    initialized = true;
+  }
+
+  for (size_t i = taps - 1; i > 0; --i) {
+    history[i] = history[i - 1];
+  }
+  history[0] = input;
+
+  float output = 0.0f;
+  for (size_t i = 0; i < taps; ++i) {
+    output += coefficient * history[i];
+  }
+
+  return output;
 }
 
 void setup() {
   Serial.begin(115200);
-  delay(1000);
 
   servo.begin();
 
   if (!sensor.begin()) {
     Serial.println("Sensor nao encontrado!");
-    while (true) {
-      delay(100);
-    }
   }
 }
 
 void loop() {
-  servo.update(millis());
+  
 
   DistanceMeasurement measurement{};
   if (sensor.update(measurement)) {
-    Serial.print("Distancia:");
-    Serial.print(measurement.distance);
-    Serial.print("\tPosicao:");
-    Serial.print(measurement.position);
-    Serial.print("\tPulso:");
-    Serial.println(servo.currentPulse());
+    Serial.println(filterPosition(measurement.position - 25));
   }
 }
