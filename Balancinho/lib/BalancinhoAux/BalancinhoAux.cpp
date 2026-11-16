@@ -8,8 +8,8 @@ ServoSweep::ServoSweep(const ServoSweepConfig& config)
       lastStep_(0) {}
 
 void ServoSweep::begin() {
-  ledcSetup(config_.channel, config_.frequency, config_.resolution);
-  ledcAttachPin(config_.pin, config_.channel);
+  ledcAttachChannel(config_.pin, config_.frequency, config_.resolution,
+                    config_.channel);
   writePulse(currentPulse_);
 }
 
@@ -46,7 +46,7 @@ int ServoSweep::currentPulse() const {
 void ServoSweep::writePulse(int pulse) {
   const uint32_t maxDuty = (1UL << config_.resolution) - 1;
   const uint32_t duty = (static_cast<uint64_t>(pulse) * maxDuty) / 20000;
-  ledcWrite(config_.channel, duty);
+  ledcWriteChannel(config_.channel, duty);
 }
 
 void ServoSweep::selectNextTarget() {

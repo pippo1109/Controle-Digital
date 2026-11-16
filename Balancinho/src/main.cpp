@@ -4,12 +4,12 @@
 namespace {
 
 ServoSweep servo({D2, 0, 50, 14, 1493, 11, 15, 12});
-DistanceSensor sensor({230, 500, 4, 4, 60, 50000, 50});
+DistanceSensor sensor({216, 500, 4, 4, 60, 33000, 33});
 
 }
 
 float filterPosition(float input) {
-  constexpr size_t taps = 7;
+  constexpr size_t taps = 5;
   constexpr float coefficient = 1.0f / taps;
 
   static float history[taps] = {};
@@ -47,10 +47,9 @@ void setup() {
 }
 
 void loop() {
-  
 
   DistanceMeasurement measurement{};
   if (sensor.update(measurement)) {
-    Serial.println(filterPosition(measurement.position - 25));
+    Serial.println(filterPosition(measurement.position) / 1.043f);
   }
 }
